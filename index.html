@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEURAL EMOTION STREAMER v2.8</title>
+  <!-- Google Fonts for futuristic cyberpunk aesthetic -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&family=Orbitron:wght@400;600;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <!-- FontAwesome for futuristic interface icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <!-- Core styling -->
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- MediaPipe CDN Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+</head>
+<body class="cyberpunk-theme">
+  <!-- Scanline and noise overlay for a retro-futuristic CRT screen effect -->
+  <div class="screen-overlay scanlines"></div>
+  <div class="screen-overlay ambient-glow"></div>
+
+  <!-- Loading Screen Overlay -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="loader-content">
+      <div class="cyber-spinner">
+        <div class="spinner-ring ring-1"></div>
+        <div class="spinner-ring ring-2"></div>
+        <div class="spinner-ring ring-3"></div>
+        <div class="spinner-logo"><i class="fa-solid fa-brain-circuit"></i></div>
+      </div>
+      <h2 class="glitch-text" data-text="INITIALIZING COGNITIVE INTERFACE">INITIALIZING COGNITIVE INTERFACE</h2>
+      <p class="loading-status">Connecting to neural core...</p>
+      <div class="loading-bar-container">
+        <div class="loading-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="cyber-header">
+      <div class="header-left">
+        <div class="sys-badge"><i class="fa-solid fa-bolt-lightning"></i> SYSTEM ACTIVE</div>
+        <h1 class="header-title">NEURAL EMOTION STREAMER <span class="version">v2.8.4</span></h1>
+      </div>
+      <div class="header-right">
+        <div class="header-stat">
+          <span class="stat-label">FPS</span>
+          <span id="fps-counter" class="stat-value">60.0</span>
+        </div>
+        <div class="header-stat">
+          <span class="stat-label">MODE</span>
+          <span id="mode-status" class="stat-value text-blue">SIMULATOR</span>
+        </div>
+        <div class="header-stat">
+          <span class="stat-label">NEURAL LOCK</span>
+          <span id="lock-status" class="stat-value text-red">DISENGAGED</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Dashboard Grid -->
+    <main class="dashboard-grid">
+      
+      <!-- Left Panel: Face Tracking Feed -->
+      <section class="panel-left">
+        <div class="panel-title-bar">
+          <div class="bar-tag"><i class="fa-solid fa-video"></i> INPUT_FEED</div>
+          <div class="bar-title">COGNITIVE SENSOR GRID</div>
+          <div class="bar-status" id="webcam-status">
+            <span class="status-indicator offline"></span> OFFLINE
+          </div>
+        </div>
+
+        <div class="feed-container" id="feed-wrapper">
+          <!-- Video Element (Hidden or styled behind canvas) -->
+          <video id="webcam-video" autoplay playsinline muted></video>
+          
+          <!-- Interactive WebGL/2D Canvas for Mesh, Overlay and Particles -->
+          <canvas id="mesh-canvas"></canvas>
+
+          <!-- Neon border lines wrapped inside container -->
+          <div class="neon-border-frame" id="border-frame">
+            <div class="corner-marker top-left"></div>
+            <div class="corner-marker top-right"></div>
+            <div class="corner-marker bottom-left"></div>
+            <div class="corner-marker bottom-right"></div>
+            
+            <!-- Scanning Laser Line -->
+            <div class="scan-laser"></div>
+          </div>
+
+          <!-- Dynamic labels container overlaying the feed -->
+          <div id="floating-labels-container" class="floating-container"></div>
+          
+          <!-- Overlay alerts -->
+          <div id="mesh-overlay-alert" class="feed-alert">
+            <div class="alert-pulse"><i class="fa-solid fa-expand"></i></div>
+            <span>POSITION FACE WITHIN THE SYSTEM SENSOR TARGET</span>
+          </div>
+        </div>
+
+        <!-- Left Panel Controls -->
+        <div class="feed-controls">
+          <button id="btn-toggle-camera" class="cyber-btn primary">
+            <i class="fa-solid fa-camera"></i> ENABLE WEBCAM
+          </button>
+          <div class="btn-group">
+            <button id="btn-toggle-mesh" class="cyber-btn active">
+              <i class="fa-solid fa-network-wired"></i> MESH: ON
+            </button>
+            <button id="btn-toggle-particles" class="cyber-btn active">
+              <i class="fa-solid fa-sparkles"></i> PARTICLES: ON
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Panel: Data Analytics -->
+      <section class="panel-right">
+        <!-- Section 1: Abstract Energy Flow -->
+        <div class="data-block block-flow">
+          <div class="panel-title-bar">
+            <div class="bar-tag"><i class="fa-solid fa-wind"></i> BIO_METRICS</div>
+            <div class="bar-title">EMOTIONAL ENERGY FLOW</div>
+          </div>
+          <div class="vis-container">
+            <canvas id="flow-canvas"></canvas>
+            <div class="vis-grid-overlay"></div>
+          </div>
+        </div>
+
+        <!-- Section 2: Emotion Counts & Gauges -->
+        <div class="data-block block-stats">
+          <div class="panel-title-bar">
+            <div class="bar-tag"><i class="fa-solid fa-chart-simple"></i> SPECTRUM</div>
+            <div class="bar-title">PSYCHE STATISTICAL ANALYSIS</div>
+          </div>
+          
+          <div class="emotion-gauge-list">
+            <!-- Neutral -->
+            <div class="emotion-gauge-row" data-emotion="neutral">
+              <div class="gauge-header">
+                <span class="emotion-name"><i class="fa-solid fa-face-meh"></i> NEUTRAL</span>
+                <span class="emotion-percentage" id="pct-neutral">00%</span>
+              </div>
+              <div class="gauge-bar-wrapper">
+                <div class="gauge-bar-fill" id="bar-neutral" style="width: 0%"></div>
+              </div>
+              <div class="gauge-footer">
+                <span class="gauge-count">DETECTIONS: <span id="cnt-neutral">000</span></span>
+                <span class="gauge-avg">AVG VELOCITY: <span id="avg-neutral" class="Share Tech Mono">0.00</span></span>
+              </div>
+            </div>
+
+            <!-- Happy -->
+            <div class="emotion-gauge-row" data-emotion="happy">
+              <div class="gauge-header">
+                <span class="emotion-name"><i class="fa-solid fa-face-smile"></i> HAPPY</span>
+                <span class="emotion-percentage" id="pct-happy">00%</span>
+              </div>
+              <div class="gauge-bar-wrapper">
+                <div class="gauge-bar-fill" id="bar-happy" style="width: 0%"></div>
+              </div>
+              <div class="gauge-footer">
+                <span class="gauge-count">DETECTIONS: <span id="cnt-happy">000</span></span>
+                <span class="gauge-avg">AVG VELOCITY: <span id="avg-happy">0.00</span></span>
+              </div>
+            </div>
+
+            <!-- Angry -->
+            <div class="emotion-gauge-row" data-emotion="angry">
+              <div class="gauge-header">
+                <span class="emotion-name"><i class="fa-solid fa-face-angry"></i> ANGRY</span>
+                <span class="emotion-percentage" id="pct-angry">00%</span>
+              </div>
+              <div class="gauge-bar-wrapper">
+                <div class="gauge-bar-fill" id="bar-angry" style="width: 0%"></div>
+              </div>
+              <div class="gauge-footer">
+                <span class="gauge-count">DETECTIONS: <span id="cnt-angry">000</span></span>
+                <span class="gauge-avg">AVG VELOCITY: <span id="avg-angry">0.00</span></span>
+              </div>
+            </div>
+
+            <!-- Sad -->
+            <div class="emotion-gauge-row" data-emotion="sad">
+              <div class="gauge-header">
+                <span class="emotion-name"><i class="fa-solid fa-face-sad-tear"></i> SAD</span>
+                <span class="emotion-percentage" id="pct-sad">00%</span>
+              </div>
+              <div class="gauge-bar-wrapper">
+                <div class="gauge-bar-fill" id="bar-sad" style="width: 0%"></div>
+              </div>
+              <div class="gauge-footer">
+                <span class="gauge-count">DETECTIONS: <span id="cnt-sad">000</span></span>
+                <span class="gauge-avg">AVG VELOCITY: <span id="avg-sad">0.00</span></span>
+              </div>
+            </div>
+
+            <!-- Surprised -->
+            <div class="emotion-gauge-row" data-emotion="surprised">
+              <div class="gauge-header">
+                <span class="emotion-name"><i class="fa-solid fa-face-surprise"></i> SURPRISED</span>
+                <span class="emotion-percentage" id="pct-surprised">00%</span>
+              </div>
+              <div class="gauge-bar-wrapper">
+                <div class="gauge-bar-fill" id="bar-surprised" style="width: 0%"></div>
+              </div>
+              <div class="gauge-footer">
+                <span class="gauge-count">DETECTIONS: <span id="cnt-surprised">000</span></span>
+                <span class="gauge-avg">AVG VELOCITY: <span id="avg-surprised">0.00</span></span>
+              </div>
+            </div>
+
+            <!-- Fearful -->
+            <div class="emotion-gauge-row" data-emotion="fearful">
+              <div class="gauge-header">
+                <span class="emotion-name"><i class="fa-solid fa-face-frown-open"></i> FEARFUL</span>
+                <span class="emotion-percentage" id="pct-fearful">00%</span>
+              </div>
+              <div class="gauge-bar-wrapper">
+                <div class="gauge-bar-fill" id="bar-fearful" style="width: 0%"></div>
+              </div>
+              <div class="gauge-footer">
+                <span class="gauge-count">DETECTIONS: <span id="cnt-fearful">000</span></span>
+                <span class="gauge-avg">AVG VELOCITY: <span id="avg-fearful">0.00</span></span>
+              </div>
+            </div>
+            
+            <!-- Disgusted -->
+            <div class="emotion-gauge-row" data-emotion="disgusted">
+              <div class="gauge-header">
+                <span class="emotion-name"><i class="fa-solid fa-face-grimace"></i> DISGUSTED</span>
+                <span class="emotion-percentage" id="pct-disgusted">00%</span>
+              </div>
+              <div class="gauge-bar-wrapper">
+                <div class="gauge-bar-fill" id="bar-disgusted" style="width: 0%"></div>
+              </div>
+              <div class="gauge-footer">
+                <span class="gauge-count">DETECTIONS: <span id="cnt-disgusted">000</span></span>
+                <span class="gauge-avg">AVG VELOCITY: <span id="avg-disgusted">0.00</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 3: Simulator Inputs & Terminal Logs -->
+        <div class="data-block block-console">
+          <div class="panel-title-bar">
+            <div class="bar-tag"><i class="fa-solid fa-terminal"></i> CONSOLE</div>
+            <div class="bar-title">SYSTEM DIAGNOSTIC STREAM</div>
+          </div>
+          
+          <div class="console-body">
+            <!-- Simulated controls -->
+            <div class="simulator-controls" id="sim-controls-panel">
+              <div class="sim-label">SIMULATOR DIRECTIVE:</div>
+              <div class="sim-buttons">
+                <button class="sim-btn active" data-sim-emotion="neutral">NEUTRAL</button>
+                <button class="sim-btn" data-sim-emotion="happy">HAPPY</button>
+                <button class="sim-btn" data-sim-emotion="angry">ANGRY</button>
+                <button class="sim-btn" data-sim-emotion="sad">SAD</button>
+                <button class="sim-btn" data-sim-emotion="surprised">SURPRISED</button>
+                <button class="sim-btn" data-sim-emotion="fearful">FEARFUL</button>
+                <button class="sim-btn" data-sim-emotion="disgusted">DISGUSTED</button>
+              </div>
+            </div>
+            
+            <!-- Scrolling Terminal Lines -->
+            <div class="terminal-wrapper">
+              <div id="terminal-lines" class="terminal-lines">
+                <!-- Javascript will append rows here -->
+                <div class="term-line system-line">[SYS] COGNITIVE STREAMER BOOT SUCCESSFUL.</div>
+                <div class="term-line warning-line">[WARN] CAMERA NOT ENABLED - RUNNING EMULATOR...</div>
+                <div class="term-line system-line">[SYS] SYNCING RENDER PIPELINE TO VIS_ENERGY...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      
+    </main>
+
+    <!-- Footer Status -->
+    <footer class="cyber-footer">
+      <div class="footer-left">
+        <span>SECURITY: ENCRYPTED // CORE STATUS: STABLE // SYS_LOAD: <span id="sys-load">12%</span></span>
+      </div>
+      <div class="footer-center">
+        <span class="flashing-text">&lt; DANGER: NEURAL READINGS MAY FLUCTUATE &gt;</span>
+      </div>
+      <div class="footer-right">
+        <span id="current-timestamp">2026-06-30 23:26:00 UTC</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Loading scripts -->
+  <script src="vis.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
