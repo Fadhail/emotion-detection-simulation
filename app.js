@@ -527,10 +527,7 @@ document.addEventListener('DOMContentLoaded', () => {
       spawnOverlayParticle(mouth.x, mouth.y, activeColor);
     }
 
-    // Draw floating tag next to simulated face
-    // Let's anchor it to the top-right of the projected head silhouette
-    const anchorNode = projectedPoints[syntheticFaceModel.groups.silhouette[14]]; // Top right forehead area
-    renderFloatingStatsCard(anchorNode.x, anchorNode.y, activeEmotion, smoothEmotions[activeEmotion]);
+    // (Floating stats card removed per user request)
   }
 
   // --- Real-time Floating Label Management ---
@@ -551,6 +548,37 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     
     floatingLabelsContainer.appendChild(card);
+  }
+
+  // --- Coordinate Mapping Helper to account for object-fit: cover ---
+  function getCanvasCoords(pt, canvasWidth, canvasHeight, videoElement) {
+    const videoWidth = videoElement.videoWidth || 640;
+    const videoHeight = videoElement.videoHeight || 480;
+    
+    const containerRatio = canvasWidth / canvasHeight;
+    const videoRatio = videoWidth / videoHeight;
+    
+    let scale, xOffset, yOffset;
+    
+    if (videoRatio > containerRatio) {
+      // Video is wider than canvas, height matches canvas height, sides cropped
+      scale = canvasHeight / videoHeight;
+      xOffset = (canvasWidth - videoWidth * scale) / 2;
+      yOffset = 0;
+    } else {
+      // Video is taller than canvas, width matches canvas width, top/bottom cropped
+      scale = canvasWidth / videoWidth;
+      xOffset = 0;
+      yOffset = (canvasHeight - videoHeight * scale) / 2;
+    }
+    
+    const scaledWidth = videoWidth * scale;
+    const scaledHeight = videoHeight * scale;
+    
+    return {
+      x: xOffset + pt.x * scaledWidth,
+      y: yOffset + pt.y * scaledHeight
+    };
   }
 
   // --- Real-time Geometric Heuristics (Webcam Mode) ---
@@ -680,17 +708,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Draw all points connecting to their sequential index to show detailed meshes
     ctx.beginPath();
     
-    // Instead of drawing all 468 landmarks which is cluttered, we select standard groups:
     const drawContour = (indices, close = false) => {
       if (indices.length === 0) return;
-      const pt0 = landmarks[indices[0]];
-      ctx.moveTo(pt0.x * w, pt0.y * h);
+      const pt0 = getCanvasCoords(landmarks[indices[0]], w, h, video);
+      ctx.moveTo(pt0.x, pt0.y);
       for (let i = 1; i < indices.length; i++) {
-        const pt = landmarks[indices[i]];
-        ctx.lineTo(pt.x * w, pt.y * h);
+        const pt = getCanvasCoords(landmarks[indices[i]], w, h, video);
+        ctx.lineTo(pt.x, pt.y);
       }
       if (close) {
-        ctx.lineTo(pt0.x * w, pt0.y * h);
+        ctx.lineTo(pt0.x, pt0.y);
       }
     };
 
@@ -716,13 +743,12 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // Draw little glowing points on landmarks
+    // Draw dots for all 468 landmarks for high-tech dense tracking representation
     ctx.fillStyle = '#ffffff';
-    const pointsToDraw = [...leftEyeIdx, ...rightEyeIdx, ...leftBrowIdx, ...rightBrowIdx, 19, 4, 61, 291, 152, 10];
-    pointsToDraw.forEach(idx => {
-      const pt = landmarks[idx];
+    landmarks.forEach(pt => {
+      const coords = getCanvasCoords(pt, w, h, video);
       ctx.beginPath();
-      ctx.arc(pt.x * w, pt.y * h, 1.8, 0, Math.PI * 2);
+      ctx.arc(coords.x, coords.y, 1.2, 0, Math.PI * 2);
       ctx.fill();
     });
 
@@ -734,15 +760,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const ptR = landmarks[386];
       const ptM = landmarks[13];
       
-      spawnOverlayParticle(w - (ptL.x * w), ptL.y * h, activeColor);
-      spawnOverlayParticle(w - (ptR.x * w), ptR.y * h, activeColor);
-      spawnOverlayParticle(w - (ptM.x * w), ptM.y * h, activeColor);
+      const coordsL = getCanvasCoords(ptL, w, h, video);
+      const coordsR = getCanvasCoords(ptR, w, h, video);
+      const coordsM = getCanvasCoords(ptM, w, h, video);
+      
+      spawnOverlayParticle(w - coordsL.x, coordsL.y, activeColor);
+      spawnOverlayParticle(w - coordsR.x, coordsR.y, activeColor);
+      spawnOverlayParticle(w - coordsM.x, coordsM.y, activeColor);
     }
 
-    // Anchor floating label card to center forehead landmark (idx 9, mirror horizontally)
-    const forehead = landmarks[9];
-    const mirroredX = w - (forehead.x * w);
-    renderFloatingStatsCard(mirroredX, forehead.y * h, activeEmotion, smoothEmotions[activeEmotion]);
+    // (Floating stats card removed per user request)
   }
 
   // --- Core Application Loop ---
